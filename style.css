@@ -134,6 +134,68 @@ h2 {
   color: var(--ink-soft);
 }
 
+/* ---------- Selectores de modo y tema ---------- */
+.select-row {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  font-family: "Titan One", sans-serif;
+  font-size: .8rem;
+  letter-spacing: .03em;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+}
+.chip:active { transform: translateY(3px); box-shadow: none; }
+.chip.sel { background: var(--red); color: var(--paper); }
+
+.mode-desc {
+  margin-top: 10px;
+  min-height: 1.2em;
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  box-shadow: 0 3px 0 var(--ink);
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  transition: transform 120ms cubic-bezier(.2,1.6,.4,1);
+}
+.swatch i {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+.swatch.sel { transform: scale(1.2); }
+.swatch.sel::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 3px solid var(--red);
+  border-radius: 50%;
+}
+
 .weapons-legend {
   margin: 22px 0 6px;
   display: flex;

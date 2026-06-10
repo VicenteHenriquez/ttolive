@@ -25,6 +25,91 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
+/* ---------------- Temas (paletas) ----------------
+   Cada tema define todos los colores del canvas y se refleja
+   en las variables CSS para que la UI acompañe. */
+const THEMES = {
+  papel: {
+    name: "Papel", paper: "#f3e7d3", paperDeep: "#e8d8bc", ink: "#3a2f24", inkSoft: "#7a6a52",
+    outline: "#3a2f24", playerFill: "#fdf6e9", trail: "253,246,233", redDeep: "#b22418",
+    dot: { normal: "#e03c2f", runner: "#f0612f", tank: "#8e1d12" }, frostLight: "#9fd8ef",
+    orb: { nuke: "#e03c2f", frost: "#3aa7d9", wave: "#8a5fd6", bolt: "#f2a93b", sword: "#3fa45b" },
+    grid: "rgba(58,47,36,0.05)", vignette: "rgba(90,60,30,0.14)",
+    joyBase: "rgba(58,47,36,0.08)", joyLine: "rgba(58,47,36,0.25)",
+  },
+  noche: {
+    name: "Noche", paper: "#221f31", paperDeep: "#16141f", ink: "#ece6f2", inkSoft: "#8d86a8",
+    outline: "#13111c", playerFill: "#f6f1e4", trail: "246,241,228", redDeep: "#a32014",
+    dot: { normal: "#ff5a4d", runner: "#ff8a3d", tank: "#c22f1f" }, frostLight: "#aee4f7",
+    orb: { nuke: "#ff5a4d", frost: "#5ec8f2", wave: "#a98af0", bolt: "#ffc14d", sword: "#5ed68a" },
+    grid: "rgba(236,230,242,0.05)", vignette: "rgba(0,0,0,0.35)",
+    joyBase: "rgba(236,230,242,0.08)", joyLine: "rgba(236,230,242,0.25)",
+  },
+  oceano: {
+    name: "Océano", paper: "#dff2ef", paperDeep: "#c5e4de", ink: "#103c40", inkSoft: "#4f7f7d",
+    outline: "#103c40", playerFill: "#fdfffb", trail: "253,255,251", redDeep: "#d14a36",
+    dot: { normal: "#ff6f59", runner: "#ff9f1c", tank: "#b23a48" }, frostLight: "#a3dcf0",
+    orb: { nuke: "#ff6f59", frost: "#2a9dd6", wave: "#7d6ce0", bolt: "#f4b942", sword: "#2f9e62" },
+    grid: "rgba(16,60,64,0.06)", vignette: "rgba(10,60,70,0.12)",
+    joyBase: "rgba(16,60,64,0.08)", joyLine: "rgba(16,60,64,0.25)",
+  },
+  atardecer: {
+    name: "Atardecer", paper: "#fbd9b0", paperDeep: "#f3c48e", ink: "#4a2335", inkSoft: "#8c5a64",
+    outline: "#4a2335", playerFill: "#fff4e3", trail: "255,244,227", redDeep: "#a02355",
+    dot: { normal: "#d6336c", runner: "#f06543", tank: "#8e2155" }, frostLight: "#a9d3ef",
+    orb: { nuke: "#d6336c", frost: "#3a86c9", wave: "#7b4fd0", bolt: "#e8871e", sword: "#2f8f5b" },
+    grid: "rgba(74,35,53,0.06)", vignette: "rgba(120,50,40,0.16)",
+    joyBase: "rgba(74,35,53,0.08)", joyLine: "rgba(74,35,53,0.25)",
+  },
+};
+
+let theme = THEMES.papel;
+
+function applyTheme(key) {
+  theme = THEMES[key] || THEMES.papel;
+  localStorage.setItem("tilt-theme", key);
+  const r = document.documentElement.style;
+  r.setProperty("--paper", theme.paper);
+  r.setProperty("--paper-deep", theme.paperDeep);
+  r.setProperty("--ink", theme.ink);
+  r.setProperty("--ink-soft", theme.inkSoft);
+  r.setProperty("--red", theme.dot.normal);
+  r.setProperty("--red-deep", theme.redDeep);
+  r.setProperty("--frost", theme.orb.frost);
+  r.setProperty("--wave", theme.orb.wave);
+  r.setProperty("--bolt", theme.orb.bolt);
+  r.setProperty("--sword", theme.orb.sword);
+  document.querySelector('meta[name="theme-color"]').content = theme.paper;
+  document.querySelectorAll("#theme-row .swatch").forEach((b) =>
+    b.classList.toggle("sel", b.dataset.theme === key)
+  );
+}
+
+/* ---------------- Modos de juego ---------------- */
+const MODES = {
+  classic: {
+    name: "Clásico", desc: "El original: armas, y la cosa se pone fea de a poco.",
+    ramp: 120, startDiff: 0, spawnMul: 1, orbs: true, scorePerSec: 0, scoreMul: 1,
+  },
+  chaos: {
+    name: "Caos", desc: "Empieza fuerte y empeora rápido. Puntos ×2.",
+    ramp: 50, startDiff: 0.35, spawnMul: 1.5, orbs: true, scorePerSec: 0, scoreMul: 2,
+  },
+  zen: {
+    name: "Pacifista", desc: "Sin armas: solo tú y tu agilidad. Sobrevivir puntúa.",
+    ramp: 150, startDiff: 0, spawnMul: 0.85, orbs: false, scorePerSec: 15, scoreMul: 1,
+  },
+};
+
+let modeKey = MODES[localStorage.getItem("tilt-mode")] ? localStorage.getItem("tilt-mode") : "classic";
+
+function bestKey() { return "tilt-best-" + modeKey; }
+function loadBest() {
+  // migración: el récord antiguo (sin modos) cuenta como récord de Clásico
+  const legacy = modeKey === "classic" ? localStorage.getItem("tilt-best") : null;
+  return +(localStorage.getItem(bestKey()) || legacy || 0);
+}
+
 /* ---------------- Audio: sintetizadores + música ---------------- */
 const sound = {
   ctx: null,
@@ -188,8 +273,8 @@ let sword = null;     // espada orbital {timer, angle}
 
 let running = false;
 let elapsed = 0;
-let score = 0;
-let best = +(localStorage.getItem("tilt-best") || 0);
+let score = 0; // float en Pacifista (puntúa por segundo); se muestra con floor
+let best = loadBest();
 let chain = 0;            // kills encadenados
 let chainTimer = 0;
 let multiplier = 1;
@@ -204,9 +289,9 @@ let killsTotal = 0;
 /* Tipos de enemigo: corredores rápidos y tanques aparecen al subir
    la dificultad. minDiff controla desde cuándo entran al sorteo. */
 const DOT_KINDS = {
-  normal: { speed: 1,    rMin: 5.5, rMax: 7.5,  color: "#e03c2f", pts: 10, minDiff: 0 },
-  runner: { speed: 1.75, rMin: 3.5, rMax: 4.8,  color: "#f0612f", pts: 20, minDiff: 0.15 },
-  tank:   { speed: 0.5,  rMin: 10,  rMax: 13,   color: "#8e1d12", pts: 30, minDiff: 0.3 },
+  normal: { speed: 1,    rMin: 5.5, rMax: 7.5,  pts: 10, minDiff: 0 },
+  runner: { speed: 1.75, rMin: 3.5, rMax: 4.8,  pts: 20, minDiff: 0.15 },
+  tank:   { speed: 0.5,  rMin: 10,  rMax: 13,   pts: 30, minDiff: 0.3 },
 };
 
 function pickKind() {
@@ -217,15 +302,12 @@ function pickKind() {
   return "normal";
 }
 
-const ORB_TYPES = [
-  { type: "nuke",  color: "#e03c2f" },
-  { type: "frost", color: "#3aa7d9" },
-  { type: "wave",  color: "#8a5fd6" },
-  { type: "bolt",  color: "#f2a93b" },
-  { type: "sword", color: "#3fa45b" },
-];
+const ORB_KEYS = ["nuke", "frost", "wave", "bolt", "sword"];
 
-function difficulty() { return Math.min(1, elapsed / 120); } // rampa de 2 min
+function difficulty() {
+  const M = MODES[modeKey];
+  return Math.min(1, M.startDiff + elapsed / M.ramp);
+}
 function maxDots() { return Math.floor(30 + difficulty() * 130); }
 function dotSpeed() { return 36 + difficulty() * 54; }
 
@@ -280,14 +362,14 @@ function spawnPattern() {
 
 function spawnOrb() {
   const margin = 70;
-  const def = ORB_TYPES[Math.floor(rand(0, ORB_TYPES.length))];
+  const type = ORB_KEYS[Math.floor(rand(0, ORB_KEYS.length))];
   let x, y, tries = 0;
   do {
     x = rand(margin, W - margin);
     y = rand(margin, H - margin);
     tries++;
   } while (dist2(x, y, player.x, player.y) < 150 ** 2 && tries < 20);
-  orbs.push({ x, y, type: def.type, color: def.color, age: 0 });
+  orbs.push({ x, y, type, age: 0 });
 }
 
 /* ---------------- Efectos ---------------- */
@@ -301,7 +383,7 @@ function burst(x, y, color, n = 10, speed = 160) {
   }
 }
 
-function floatText(x, y, text, color = "#3a2f24") {
+function floatText(x, y, text, color = theme.ink) {
   floaters.push({ x, y, text, life: 0.9, color });
 }
 
@@ -312,10 +394,10 @@ function killDot(i, cause) {
   chain++;
   chainTimer = 1.6;
   multiplier = 1 + Math.floor(chain / 8);
-  score += DOT_KINDS[d.kind].pts * multiplier;
-  burst(d.x, d.y, d.frozen > 0 ? "#9fd8ef" : DOT_KINDS[d.kind].color, 8, 140);
+  score += DOT_KINDS[d.kind].pts * multiplier * MODES[modeKey].scoreMul;
+  burst(d.x, d.y, d.frozen > 0 ? theme.frostLight : theme.dot[d.kind], 8, 140);
   if (chain % 8 === 0) {
-    floatText(d.x, d.y - 14, "×" + multiplier, "#e03c2f");
+    floatText(d.x, d.y - 14, "×" + multiplier, theme.dot.normal);
     bumpMultiplier();
   }
   sound.kill(chain);
@@ -324,26 +406,26 @@ function killDot(i, cause) {
 /* ---------------- Armas ---------------- */
 function fireOrb(orb) {
   sound.pickup();
-  burst(orb.x, orb.y, orb.color, 16, 220);
+  burst(orb.x, orb.y, theme.orb[orb.type], 16, 220);
 
   if (orb.type === "nuke") {
     sound.boom();
     shake = 14;
     slowmo = Math.max(slowmo, 0.3);
     const R = 190 + difficulty() * 60;
-    waves.push({ x: orb.x, y: orb.y, r: 10, maxR: R, kills: true, color: "#e03c2f", width: 26 });
+    waves.push({ x: orb.x, y: orb.y, r: 10, maxR: R, kills: true, color: theme.orb.nuke, width: 26 });
   }
 
   if (orb.type === "frost") {
     sound.freeze();
     freezeTimer = 3.2;
     for (const d of dots) d.frozen = 3.2;
-    floatText(orb.x, orb.y, "¡CONGELADOS!", "#3aa7d9");
+    floatText(orb.x, orb.y, "¡CONGELADOS!", theme.orb.frost);
   }
 
   if (orb.type === "wave") {
     shake = 8;
-    waves.push({ x: player.x, y: player.y, r: 10, maxR: Math.max(W, H) * 0.55, kills: true, color: "#8a5fd6", width: 14 });
+    waves.push({ x: player.x, y: player.y, r: 10, maxR: Math.max(W, H) * 0.55, kills: true, color: theme.orb.wave, width: 14 });
   }
 
   if (orb.type === "bolt") {
@@ -365,7 +447,7 @@ function fireOrb(orb) {
   if (orb.type === "sword") {
     sound.slash();
     sword = { timer: 9, angle: rand(0, TAU) };
-    floatText(orb.x, orb.y, "¡ESPADA!", "#3fa45b");
+    floatText(orb.x, orb.y, "¡ESPADA!", theme.orb.sword);
   }
 }
 
@@ -382,7 +464,9 @@ function swordTip() {
 
 /* ---------------- Update ---------------- */
 function update(dt) {
+  const M = MODES[modeKey];
   elapsed += dt;
+  if (M.scorePerSec) score += M.scorePerSec * dt;
   readInput();
 
   // Jugador: física tipo "canica sobre mesa inclinada"
@@ -421,12 +505,14 @@ function update(dt) {
   spawnClock -= dt;
   if (spawnClock <= 0) {
     spawnPattern();
-    spawnClock = rand(1.6, 3.2) - difficulty() * 1.1;
+    spawnClock = (rand(1.6, 3.2) - difficulty() * 1.1) / M.spawnMul;
   }
-  patternClock -= dt;
-  if (patternClock <= 0) {
-    if (orbs.length < 3) spawnOrb();
-    patternClock = rand(3.5, 6);
+  if (M.orbs) {
+    patternClock -= dt;
+    if (patternClock <= 0) {
+      if (orbs.length < 3) spawnOrb();
+      patternClock = rand(3.5, 6);
+    }
   }
 
   // Puntos rojos
@@ -531,10 +617,10 @@ function updateFx(dt) {
 
 /* ---------------- Render ---------------- */
 function drawBackground() {
-  ctx.fillStyle = "#f3e7d3";
+  ctx.fillStyle = theme.paper;
   ctx.fillRect(0, 0, W, H);
   // cuadrícula de papel sutil
-  ctx.strokeStyle = "rgba(58,47,36,0.05)";
+  ctx.strokeStyle = theme.grid;
   ctx.lineWidth = 1;
   const g = 48;
   ctx.beginPath();
@@ -544,7 +630,7 @@ function drawBackground() {
   // viñeta
   const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.75);
   vg.addColorStop(0, "rgba(0,0,0,0)");
-  vg.addColorStop(1, "rgba(90,60,30,0.14)");
+  vg.addColorStop(1, theme.vignette);
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, W, H);
 
@@ -559,7 +645,7 @@ function drawTrail() {
   ctx.lineCap = "round";
   for (let i = 1; i < trail.length; i++) {
     const a = trail[i - 1], b = trail[i];
-    ctx.strokeStyle = "rgba(253,246,233,0.9)";
+    ctx.strokeStyle = `rgba(${theme.trail},0.9)`;
     ctx.globalAlpha = clamp(b.life / 0.35, 0, 1) * 0.55;
     ctx.lineWidth = clamp(b.life / 0.35, 0, 1) * 7;
     ctx.beginPath();
@@ -581,8 +667,8 @@ function drawPlayer(t) {
   ctx.lineTo(-5, 0);
   ctx.lineTo(-10, -9);
   ctx.closePath();
-  ctx.fillStyle = "#fdf6e9";
-  ctx.strokeStyle = "#3a2f24";
+  ctx.fillStyle = theme.playerFill;
+  ctx.strokeStyle = theme.outline;
   ctx.lineWidth = 3;
   ctx.fill();
   ctx.stroke();
@@ -602,15 +688,16 @@ function drawSword() {
   ctx.lineTo(SWORD_ORBIT + 22, 0);
   ctx.lineTo(SWORD_ORBIT - 26, 5);
   ctx.closePath();
-  ctx.fillStyle = "#3fa45b";
-  ctx.strokeStyle = "#3a2f24";
+  ctx.fillStyle = theme.orb.sword;
+  ctx.strokeStyle = theme.outline;
   ctx.lineWidth = 2.5;
   ctx.fill();
   ctx.stroke();
   // arco de barrido
   ctx.beginPath();
   ctx.arc(0, 0, SWORD_ORBIT, -0.7, 0);
-  ctx.strokeStyle = "rgba(63,164,91,0.35)";
+  ctx.strokeStyle = theme.orb.sword;
+  ctx.globalAlpha *= 0.35;
   ctx.lineWidth = 8;
   ctx.stroke();
   ctx.restore();
@@ -641,15 +728,15 @@ function draw(t) {
     ctx.globalAlpha = fade;
     ctx.beginPath();
     ctx.arc(o.x, o.y, 13 * pulse, 0, TAU);
-    ctx.fillStyle = o.color;
-    ctx.strokeStyle = "#3a2f24";
+    ctx.fillStyle = theme.orb[o.type];
+    ctx.strokeStyle = theme.outline;
     ctx.lineWidth = 3;
     ctx.fill();
     ctx.stroke();
     // halo
     ctx.beginPath();
     ctx.arc(o.x, o.y, 20 * pulse, 0, TAU);
-    ctx.strokeStyle = o.color;
+    ctx.strokeStyle = theme.orb[o.type];
     ctx.globalAlpha = fade * 0.35;
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -662,14 +749,14 @@ function draw(t) {
     const pulse = frozen ? 1 : 1 + Math.sin(d.wob * 2) * 0.1;
     ctx.beginPath();
     ctx.arc(d.x, d.y, d.r * pulse, 0, TAU);
-    ctx.fillStyle = frozen ? "#9fd8ef" : DOT_KINDS[d.kind].color;
+    ctx.fillStyle = frozen ? theme.frostLight : theme.dot[d.kind];
     ctx.fill();
     if (frozen) {
-      ctx.strokeStyle = "#3aa7d9";
+      ctx.strokeStyle = theme.orb.frost;
       ctx.lineWidth = 1.5;
       ctx.stroke();
     } else if (d.kind === "tank") {
-      ctx.strokeStyle = "#3a2f24";
+      ctx.strokeStyle = theme.outline;
       ctx.lineWidth = 2;
       ctx.stroke();
     }
@@ -677,7 +764,7 @@ function draw(t) {
 
   // rayos
   for (const b of bolts) {
-    ctx.strokeStyle = "#f2a93b";
+    ctx.strokeStyle = theme.orb.bolt;
     ctx.globalAlpha = b.life / 0.22;
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -720,15 +807,15 @@ function draw(t) {
   if (running && input.mode === "joy" && joy.active) {
     ctx.beginPath();
     ctx.arc(joy.bx, joy.by, JOY_R, 0, TAU);
-    ctx.fillStyle = "rgba(58,47,36,0.08)";
-    ctx.strokeStyle = "rgba(58,47,36,0.25)";
+    ctx.fillStyle = theme.joyBase;
+    ctx.strokeStyle = theme.joyLine;
     ctx.lineWidth = 2;
     ctx.fill();
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(joy.sx, joy.sy, 24, 0, TAU);
-    ctx.fillStyle = "rgba(253,246,233,0.85)";
-    ctx.strokeStyle = "#3a2f24";
+    ctx.fillStyle = `rgba(${theme.trail},0.85)`;
+    ctx.strokeStyle = theme.outline;
     ctx.lineWidth = 3;
     ctx.fill();
     ctx.stroke();
@@ -742,9 +829,10 @@ const $bestInline = document.getElementById("best-inline");
 let lastShownScore = -1;
 
 function updateHUD() {
-  if (score !== lastShownScore) {
-    $score.textContent = score.toLocaleString("es-CL");
-    lastShownScore = score;
+  const shown = Math.floor(score);
+  if (shown !== lastShownScore) {
+    $score.textContent = shown.toLocaleString("es-CL");
+    lastShownScore = shown;
   }
   $mult.textContent = "×" + multiplier;
   $mult.classList.toggle("mult-hidden", multiplier <= 1);
@@ -776,7 +864,7 @@ function startGame() {
   player.vx = player.vy = 0; player.angle = -Math.PI / 2;
   $overlay.classList.add("gone");
   $hud.hidden = false;
-  $bestInline.textContent = best ? "RÉCORD " + best.toLocaleString("es-CL") : "";
+  $bestInline.textContent = best ? `RÉCORD ${MODES[modeKey].name.toUpperCase()} ${best.toLocaleString("es-CL")}` : MODES[modeKey].name.toUpperCase();
   running = true;
   updateHUD();
 }
@@ -787,20 +875,21 @@ function gameOver() {
   sound.death();
   shake = 16;
   slowmo = 0.5;
-  burst(player.x, player.y, "#fdf6e9", 30, 320);
-  burst(player.x, player.y, "#e03c2f", 20, 240);
+  burst(player.x, player.y, theme.playerFill, 30, 320);
+  burst(player.x, player.y, theme.dot.normal, 20, 240);
 
-  const isRecord = score > best;
+  const finalScore = Math.floor(score);
+  const isRecord = finalScore > best;
   if (isRecord) {
-    best = score;
-    localStorage.setItem("tilt-best", String(best));
+    best = finalScore;
+    localStorage.setItem(bestKey(), String(best));
   }
 
   setTimeout(() => {
     document.getElementById("over-title").textContent = isRecord ? "¡NUEVO RÉCORD!" : "TE ATRAPARON";
-    document.getElementById("final-score").textContent = score.toLocaleString("es-CL");
+    document.getElementById("final-score").textContent = finalScore.toLocaleString("es-CL");
     document.getElementById("over-detail").textContent =
-      `${killsTotal} puntos rojos eliminados · sobreviviste ${Math.floor(elapsed)}s` +
+      `${MODES[modeKey].name} · ${killsTotal} puntos eliminados · sobreviviste ${Math.floor(elapsed)}s` +
       (isRecord ? "" : ` · récord: ${best.toLocaleString("es-CL")}`);
     $start.hidden = true;
     $over.hidden = false;
@@ -824,7 +913,41 @@ if (isTouch) {
 } else {
   $hint.textContent = "Mueve con el mouse o con WASD / flechas.";
 }
-if (best) $best.textContent = "Tu récord: " + best.toLocaleString("es-CL");
+/* Selector de modo */
+const $modeDesc = document.getElementById("mode-desc");
+
+function setMode(key) {
+  modeKey = key;
+  localStorage.setItem("tilt-mode", key);
+  best = loadBest();
+  $modeDesc.textContent = MODES[key].desc;
+  document.querySelector(".weapons-legend").style.visibility = MODES[key].orbs ? "visible" : "hidden";
+  $best.textContent = best ? `Tu récord en ${MODES[key].name}: ${best.toLocaleString("es-CL")}` : "";
+  document.querySelectorAll("#mode-row .chip").forEach((b) =>
+    b.classList.toggle("sel", b.dataset.mode === key)
+  );
+}
+
+document.querySelectorAll("#mode-row .chip").forEach((b) =>
+  b.addEventListener("click", () => setMode(b.dataset.mode))
+);
+
+/* Selector de tema: swatches generados desde THEMES */
+const $themeRow = document.getElementById("theme-row");
+for (const [key, t] of Object.entries(THEMES)) {
+  const b = document.createElement("button");
+  b.className = "swatch";
+  b.dataset.theme = key;
+  b.title = t.name;
+  b.setAttribute("aria-label", "Tema " + t.name);
+  b.style.background = t.paper;
+  b.innerHTML = `<i style="background:${t.dot.normal}"></i>`;
+  b.addEventListener("click", () => applyTheme(key));
+  $themeRow.appendChild(b);
+}
+
+setMode(modeKey);
+applyTheme(localStorage.getItem("tilt-theme") || "papel");
 
 $btnStart.addEventListener("click", () => {
   input.mode = isTouch ? "joy" : input.mode;
