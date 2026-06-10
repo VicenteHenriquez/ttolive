@@ -94,15 +94,22 @@ html, body {
 #overlay {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  display: flex;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: calc(24px + env(safe-area-inset-top))
+           calc(24px + env(safe-area-inset-right))
+           calc(24px + env(safe-area-inset-bottom))
+           calc(24px + env(safe-area-inset-left));
 }
 #overlay.gone { display: none; }
 
 .panel {
   text-align: center;
   max-width: 420px;
+  /* margin auto centra cuando cabe y permite scroll cuando no */
+  margin: auto;
   animation: pop-in 420ms cubic-bezier(.2,1.5,.4,1) both;
 }
 
@@ -308,4 +315,26 @@ h2 {
   color: var(--ink);
   text-shadow: 4px 4px 0 var(--paper-deep);
   margin-top: 8px;
+}
+
+/* ---------- Pantallas bajas (móvil en horizontal) ---------- */
+@media (max-height: 540px) {
+  #overlay { padding-top: calc(10px + env(safe-area-inset-top)); padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .panel { max-width: 540px; }
+  h1 { font-size: clamp(2.4rem, 14vh, 4.5rem); }
+  h1 .t1 { text-shadow: 4px 4px 0 var(--paper-deep); }
+  h1 .t2 { text-shadow: 4px 4px 0 var(--red-deep); }
+  .tagline { margin-top: 6px; font-size: .85rem; }
+  .tagline br { display: none; }
+  .select-row { margin-top: 10px; gap: 8px; }
+  .chip { font-size: .7rem; padding: 7px 11px; }
+  .mode-desc { margin-top: 6px; font-size: .78rem; }
+  .swatch { width: 30px; height: 30px; }
+  .weapons-legend { margin: 10px 0 2px; gap: 10px; font-size: .75rem; }
+  .big-btn { margin-top: 10px; padding: 11px 28px; font-size: 1.25rem; }
+  .big-btn.alt { font-size: 1rem; }
+  .hint { margin-top: 8px; font-size: .78rem; }
+  .best { margin-top: 6px; font-size: .85rem; }
+  .text-btn { margin-top: 8px; }
+  .final-score { font-size: clamp(2.2rem, 16vh, 3.4rem); margin-top: 4px; }
 }
