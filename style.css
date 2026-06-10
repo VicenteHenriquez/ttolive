@@ -9,6 +9,7 @@
   --wave: #8a5fd6;
   --bolt: #f2a93b;
   --sword: #3fa45b;
+  --nuke: #d4317f;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -214,7 +215,7 @@ h2 {
   border: 2.5px solid var(--ink);
   display: inline-block;
 }
-.orb-nuke  { background: var(--red); }
+.orb-nuke  { background: var(--nuke); }
 .orb-frost { background: var(--frost); }
 .orb-wave  { background: var(--wave); }
 .orb-bolt  { background: var(--bolt); }
@@ -237,6 +238,20 @@ h2 {
 }
 .big-btn:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
 .big-btn.alt { background: var(--frost); font-size: 1.15rem; }
+
+.text-btn {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  font-family: "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: .95rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.text-btn:active { color: var(--ink); }
 
 .hint {
   margin-top: 16px;

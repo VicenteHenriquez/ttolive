@@ -33,7 +33,7 @@ const THEMES = {
     name: "Papel", paper: "#f3e7d3", paperDeep: "#e8d8bc", ink: "#3a2f24", inkSoft: "#7a6a52",
     outline: "#3a2f24", playerFill: "#fdf6e9", trail: "253,246,233", redDeep: "#b22418",
     dot: { normal: "#e03c2f", runner: "#f0612f", tank: "#8e1d12" }, frostLight: "#9fd8ef",
-    orb: { nuke: "#e03c2f", frost: "#3aa7d9", wave: "#8a5fd6", bolt: "#f2a93b", sword: "#3fa45b" },
+    orb: { nuke: "#d4317f", frost: "#3aa7d9", wave: "#8a5fd6", bolt: "#f2a93b", sword: "#3fa45b" },
     grid: "rgba(58,47,36,0.05)", vignette: "rgba(90,60,30,0.14)",
     joyBase: "rgba(58,47,36,0.08)", joyLine: "rgba(58,47,36,0.25)",
   },
@@ -41,7 +41,7 @@ const THEMES = {
     name: "Noche", paper: "#221f31", paperDeep: "#16141f", ink: "#ece6f2", inkSoft: "#8d86a8",
     outline: "#13111c", playerFill: "#f6f1e4", trail: "246,241,228", redDeep: "#a32014",
     dot: { normal: "#ff5a4d", runner: "#ff8a3d", tank: "#c22f1f" }, frostLight: "#aee4f7",
-    orb: { nuke: "#ff5a4d", frost: "#5ec8f2", wave: "#a98af0", bolt: "#ffc14d", sword: "#5ed68a" },
+    orb: { nuke: "#ff5fa2", frost: "#5ec8f2", wave: "#a98af0", bolt: "#ffc14d", sword: "#5ed68a" },
     grid: "rgba(236,230,242,0.05)", vignette: "rgba(0,0,0,0.35)",
     joyBase: "rgba(236,230,242,0.08)", joyLine: "rgba(236,230,242,0.25)",
   },
@@ -49,7 +49,7 @@ const THEMES = {
     name: "Océano", paper: "#dff2ef", paperDeep: "#c5e4de", ink: "#103c40", inkSoft: "#4f7f7d",
     outline: "#103c40", playerFill: "#fdfffb", trail: "253,255,251", redDeep: "#d14a36",
     dot: { normal: "#ff6f59", runner: "#ff9f1c", tank: "#b23a48" }, frostLight: "#a3dcf0",
-    orb: { nuke: "#ff6f59", frost: "#2a9dd6", wave: "#7d6ce0", bolt: "#f4b942", sword: "#2f9e62" },
+    orb: { nuke: "#c2369b", frost: "#2a9dd6", wave: "#7d6ce0", bolt: "#f4b942", sword: "#2f9e62" },
     grid: "rgba(16,60,64,0.06)", vignette: "rgba(10,60,70,0.12)",
     joyBase: "rgba(16,60,64,0.08)", joyLine: "rgba(16,60,64,0.25)",
   },
@@ -57,7 +57,7 @@ const THEMES = {
     name: "Atardecer", paper: "#fbd9b0", paperDeep: "#f3c48e", ink: "#4a2335", inkSoft: "#8c5a64",
     outline: "#4a2335", playerFill: "#fff4e3", trail: "255,244,227", redDeep: "#a02355",
     dot: { normal: "#d6336c", runner: "#f06543", tank: "#8e2155" }, frostLight: "#a9d3ef",
-    orb: { nuke: "#d6336c", frost: "#3a86c9", wave: "#7b4fd0", bolt: "#e8871e", sword: "#2f8f5b" },
+    orb: { nuke: "#1fa896", frost: "#3a86c9", wave: "#7b4fd0", bolt: "#e8871e", sword: "#2f8f5b" },
     grid: "rgba(74,35,53,0.06)", vignette: "rgba(120,50,40,0.16)",
     joyBase: "rgba(74,35,53,0.08)", joyLine: "rgba(74,35,53,0.25)",
   },
@@ -75,6 +75,7 @@ function applyTheme(key) {
   r.setProperty("--ink-soft", theme.inkSoft);
   r.setProperty("--red", theme.dot.normal);
   r.setProperty("--red-deep", theme.redDeep);
+  r.setProperty("--nuke", theme.orb.nuke);
   r.setProperty("--frost", theme.orb.frost);
   r.setProperty("--wave", theme.orb.wave);
   r.setProperty("--bolt", theme.orb.bolt);
@@ -1010,6 +1011,12 @@ $btnTilt.addEventListener("click", async () => {
     if (input.lastTilt) input.tiltBase = { ...input.lastTilt };
     startGame();
   }, 150);
+});
+
+document.getElementById("btn-home").addEventListener("click", () => {
+  $over.hidden = true;
+  $start.hidden = false;
+  setMode(modeKey); // refresca el récord mostrado (pudo cambiar recién)
 });
 
 document.getElementById("btn-retry").addEventListener("click", () => {
