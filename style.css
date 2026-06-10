@@ -1,0 +1,234 @@
+:root {
+  --paper: #f3e7d3;
+  --paper-deep: #e8d8bc;
+  --ink: #3a2f24;
+  --ink-soft: #7a6a52;
+  --red: #e03c2f;
+  --red-deep: #b22418;
+  --frost: #3aa7d9;
+  --wave: #8a5fd6;
+  --bolt: #f2a93b;
+  --sword: #3fa45b;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--paper);
+  font-family: "Nunito", sans-serif;
+  color: var(--ink);
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------- HUD ---------- */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: calc(14px + env(safe-area-inset-top)) 20px 0;
+}
+
+#score {
+  font-family: "Titan One", sans-serif;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  line-height: 1;
+  color: var(--ink);
+  text-shadow: 3px 3px 0 var(--paper-deep);
+}
+
+#multiplier {
+  font-family: "Titan One", sans-serif;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  color: var(--red);
+  transition: transform 120ms cubic-bezier(.2,1.6,.4,1);
+}
+#multiplier.mult-hidden { opacity: 0; }
+#multiplier.bump { transform: scale(1.35) rotate(-4deg); }
+
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#best-inline {
+  font-weight: 800;
+  font-size: .85rem;
+  color: var(--ink-soft);
+  letter-spacing: .04em;
+}
+
+#mute {
+  pointer-events: auto;
+  font-family: "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+}
+#mute.muted { opacity: .45; box-shadow: none; transform: translateY(3px); }
+
+/* ---------- Overlay screens ---------- */
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+#overlay.gone { display: none; }
+
+.panel {
+  text-align: center;
+  max-width: 420px;
+  animation: pop-in 420ms cubic-bezier(.2,1.5,.4,1) both;
+}
+
+@keyframes pop-in {
+  from { transform: scale(.7) translateY(20px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+h1 {
+  font-family: "Titan One", sans-serif;
+  font-size: clamp(4.5rem, 18vw, 8rem);
+  line-height: .9;
+  letter-spacing: -.02em;
+}
+h1 .t1 { color: var(--ink); text-shadow: 6px 6px 0 var(--paper-deep); }
+h1 .t2 { color: var(--red); text-shadow: 6px 6px 0 var(--red-deep); display: inline-block; transform: rotate(8deg); }
+
+h2 {
+  font-family: "Titan One", sans-serif;
+  font-size: clamp(2.2rem, 9vw, 3.4rem);
+  color: var(--red);
+  text-shadow: 4px 4px 0 var(--red-deep);
+  -webkit-text-stroke: 0;
+}
+
+.tagline {
+  margin-top: 14px;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+}
+
+.weapons-legend {
+  margin: 22px 0 6px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-weight: 800;
+  font-size: .85rem;
+  color: var(--ink-soft);
+}
+.weapons-legend span { display: flex; align-items: center; gap: 6px; }
+
+.orb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  display: inline-block;
+}
+.orb-nuke  { background: var(--red); }
+.orb-frost { background: var(--frost); }
+.orb-wave  { background: var(--wave); }
+.orb-bolt  { background: var(--bolt); }
+.orb-sword { background: var(--sword); }
+
+.big-btn {
+  margin-top: 22px;
+  display: block;
+  width: 100%;
+  font-family: "Titan One", sans-serif;
+  font-size: 1.6rem;
+  padding: 16px 36px;
+  color: var(--paper);
+  background: var(--red);
+  border: 4px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 0 6px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+}
+.big-btn:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
+.big-btn.alt { background: var(--frost); font-size: 1.15rem; }
+
+.hint {
+  margin-top: 16px;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.best {
+  margin-top: 10px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ---------- Aviso de rotación (solo táctil en vertical) ---------- */
+#rotate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: var(--paper);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+#rotate .phone {
+  font-size: 4rem;
+  animation: rotate-phone 1.6s ease-in-out infinite;
+}
+#rotate p {
+  font-family: "Titan One", sans-serif;
+  font-size: 1.6rem;
+  color: var(--ink);
+  text-shadow: 3px 3px 0 var(--paper-deep);
+}
+#rotate span {
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--ink-soft);
+}
+@keyframes rotate-phone {
+  0%, 25%   { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(90deg); }
+}
+@media (orientation: portrait) {
+  body.touch #rotate { display: flex; }
+}
+
+.final-score {
+  font-family: "Titan One", sans-serif;
+  font-size: clamp(3rem, 14vw, 5rem);
+  color: var(--ink);
+  text-shadow: 4px 4px 0 var(--paper-deep);
+  margin-top: 8px;
+}

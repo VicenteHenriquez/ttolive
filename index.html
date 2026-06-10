@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#f3e7d3" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<title>TILT! — esquiva o muere</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" hidden>
+  <div class="hud-left">
+    <div id="score">0</div>
+    <div id="multiplier" class="mult-hidden">×1</div>
+  </div>
+  <div class="hud-right">
+    <div id="best-inline"></div>
+    <button id="mute" aria-label="Silenciar sonido">♪</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <section id="screen-start" class="panel">
+    <h1><span class="t1">TILT</span><span class="t2">!</span></h1>
+    <p class="tagline">Eres la flecha. Los puntos rojos te odian.<br/>Esquívalos y recoge las armas.</p>
+
+    <div class="weapons-legend">
+      <span><i class="orb orb-nuke"></i> Nuke</span>
+      <span><i class="orb orb-frost"></i> Hielo</span>
+      <span><i class="orb orb-wave"></i> Onda</span>
+      <span><i class="orb orb-bolt"></i> Rayo</span>
+      <span><i class="orb orb-sword"></i> Espada</span>
+    </div>
+
+    <button id="btn-start" class="big-btn">JUGAR</button>
+    <button id="btn-tilt" class="big-btn alt" hidden>JUGAR CON INCLINACIÓN</button>
+    <p id="controls-hint" class="hint"></p>
+    <p id="best" class="best"></p>
+  </section>
+
+  <section id="screen-over" class="panel" hidden>
+    <h2 id="over-title">TE ATRAPARON</h2>
+    <p class="final-score"><span id="final-score">0</span> pts</p>
+    <p id="over-detail" class="hint"></p>
+    <button id="btn-retry" class="big-btn">OTRA VEZ</button>
+  </section>
+</div>
+
+<div id="rotate">
+  <div class="phone">📱</div>
+  <p>GIRA EL TELÉFONO</p>
+  <span>Este juego se juega en horizontal</span>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
