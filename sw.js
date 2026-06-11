@@ -1,4 +1,4 @@
-const CACHE = "tilt-v5";
+const CACHE = "tilt-v7";
 const ASSETS = ["./", "index.html", "style.css", "game.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {

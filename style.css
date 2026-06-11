@@ -249,6 +249,70 @@ h2 {
   color: var(--ink-soft);
 }
 
+/* ---------- Botón de ajustes + popup de configuración ---------- */
+#btn-config {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  right: 20px;
+  z-index: 20;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+}
+#btn-config:active { transform: translateY(3px); box-shadow: none; }
+#btn-config[hidden] { display: none; }
+
+#screen-config > .row-label { display: block; margin-top: 16px; }
+.config-title { margin-bottom: 4px; }
+
+.color-row { gap: 8px; }
+.color-swatch { width: 32px; height: 32px; }
+.color-swatch i { display: none; }
+.color-swatch.tema-swatch { border-style: dashed; }
+
+.feel-row { gap: 8px; }
+.feel-end {
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+#feel-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 150px;
+  height: 8px;
+  border-radius: 6px;
+  background: var(--paper-deep);
+  border: 2px solid var(--ink);
+  outline: none;
+}
+#feel-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 3px solid var(--ink);
+  box-shadow: 0 2px 0 var(--ink);
+  cursor: pointer;
+}
+#feel-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 3px solid var(--ink);
+  cursor: pointer;
+}
+
 .unlock-msg {
   margin-top: 10px;
   font-weight: 800;
@@ -392,4 +456,8 @@ h2 {
   .best { margin-top: 6px; font-size: .85rem; }
   .text-btn { margin-top: 8px; }
   .final-score { font-size: clamp(2.2rem, 16vh, 3.4rem); margin-top: 4px; }
+  #btn-config { width: 38px; height: 38px; font-size: 1.1rem; right: 14px; }
+  #screen-config > .row-label { margin-top: 8px; }
+  #feel-range { width: 120px; }
+  .color-swatch { width: 26px; height: 26px; }
 }

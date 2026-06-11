@@ -42,18 +42,6 @@
     </div>
     <p id="mode-desc" class="mode-desc"></p>
 
-    <div class="select-row" id="theme-row" aria-label="Tema de colores"></div>
-
-    <div class="select-row" id="cursor-row" aria-label="Cursor del jugador"></div>
-    <p id="cursor-desc" class="mode-desc"></p>
-
-    <div class="select-row" id="sens-row" hidden>
-      <span class="row-label">SENSIBILIDAD</span>
-      <button class="chip" data-sens="suave">SUAVE</button>
-      <button class="chip" data-sens="normal">NORMAL</button>
-      <button class="chip" data-sens="rapida">RÁPIDA</button>
-    </div>
-
     <div class="weapons-legend">
       <span><i class="orb orb-nuke"></i> Nuke</span>
       <span><i class="orb orb-frost"></i> Hielo</span>
@@ -76,7 +64,42 @@
     <button id="btn-retry" class="big-btn">OTRA VEZ</button>
     <button id="btn-home" class="text-btn">← Pantalla de inicio</button>
   </section>
+
+  <section id="screen-config" class="panel" hidden>
+    <h2 class="config-title">AJUSTES</h2>
+
+    <span class="row-label">TEMA</span>
+    <div class="select-row" id="theme-row" aria-label="Tema de colores"></div>
+
+    <span class="row-label">CURSOR</span>
+    <div class="select-row" id="cursor-row" aria-label="Cursor del jugador"></div>
+    <p id="cursor-desc" class="mode-desc"></p>
+
+    <span class="row-label">COLOR CURSOR</span>
+    <div class="select-row color-row" id="cursor-color-row" aria-label="Color del cursor"></div>
+
+    <span class="row-label">COLOR ESTELA</span>
+    <div class="select-row color-row" id="trail-color-row" aria-label="Color de la estela"></div>
+
+    <div class="select-row" id="sens-row" hidden>
+      <span class="row-label">SENSIBILIDAD</span>
+      <button class="chip" data-sens="suave">SUAVE</button>
+      <button class="chip" data-sens="normal">NORMAL</button>
+      <button class="chip" data-sens="rapida">RÁPIDA</button>
+    </div>
+
+    <div class="select-row feel-row" id="feel-row" hidden>
+      <span class="row-label">CONTROL</span>
+      <span class="feel-end">Deslizante</span>
+      <input type="range" id="feel-range" min="0" max="100" step="1" aria-label="Control" />
+      <span class="feel-end">Preciso</span>
+    </div>
+
+    <button id="btn-config-done" class="big-btn">LISTO</button>
+  </section>
 </div>
+
+<button id="btn-config" aria-label="Ajustes" hidden>⚙</button>
 
 <div id="rotate">
   <div class="phone">📱</div>

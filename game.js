@@ -85,6 +85,7 @@ function applyTheme(key) {
     b.classList.toggle("sel", b.dataset.theme === key)
   );
   refreshCursorRow(); // las previews de cursores usan los colores del tema
+  refreshColorRows(); // el swatch "Tema" sigue al tema activo
 }
 
 /* ---------------- Modos de juego ---------------- */
@@ -165,6 +166,28 @@ if (!CURSORS[cursorKey] || !cursorUnlocked(cursorKey)) cursorKey = "flecha";
 const SENS_LEVELS = { suave: 0.7, normal: 1, rapida: 1.4 };
 let sensKey = SENS_LEVELS[localStorage.getItem("tilt-sens")] ? localStorage.getItem("tilt-sens") : "normal";
 
+/* ---------------- Tacto: "control" (firmeza) ----------------
+   0 = deslizante (canica sobre hielo), 100 = preciso (frena al soltar).
+   Solo afecta a los modos táctiles (joystick e inclinación). */
+let feel = clamp(+(localStorage.getItem("tilt-feel") ?? 65), 0, 100);
+
+/* ---------------- Colores de cursor y estela ----------------
+   Paleta curada que funciona en los 4 temas. "tema" hereda el color
+   del tema activo (relleno del jugador / estela), por defecto. */
+const COLORS = {
+  rojo: "#e8453c", naranjo: "#f0892a", amarillo: "#f4c020", verde: "#43a95d",
+  cian: "#2fb0cf", azul: "#3b6fd6", violeta: "#8a5fd6", rosa: "#e0539b",
+};
+let cursorColorKey = COLORS[localStorage.getItem("tilt-cursor-color")] ? localStorage.getItem("tilt-cursor-color") : "tema";
+let trailColorKey = COLORS[localStorage.getItem("tilt-trail-color")] ? localStorage.getItem("tilt-trail-color") : "tema";
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
+}
+function cursorFill() { return cursorColorKey === "tema" ? theme.playerFill : COLORS[cursorColorKey]; }
+function trailRgb() { return trailColorKey === "tema" ? theme.trail : hexToRgb(COLORS[trailColorKey]); }
+
 /* ---------------- Audio: sintetizadores + música ---------------- */
 const sound = {
   ctx: null,
@@ -240,8 +263,9 @@ const sound = {
 
 /* ---------------- Entrada ---------------- */
 const input = {
-  mode: "mouse",            // "mouse" | "keys" | "tilt"
-  ax: 0, ay: 0,             // aceleración normalizada [-1, 1]
+  mode: "mouse",            // "mouse" | "keys" | "tilt" | "joy"
+  ax: 0, ay: 0,             // aceleración normalizada y suavizada [-1, 1]
+  tiltAx: 0, tiltAy: 0,     // objetivo crudo del sensor de inclinación
   mouseX: null, mouseY: null,
   keys: new Set(),
   tiltBase: null,           // calibración {beta, gamma}
@@ -249,7 +273,7 @@ const input = {
 };
 
 /* Joystick flotante (móvil): la base aparece donde apoyas el dedo */
-const JOY_R = 60;
+const JOY_R = 78;
 const joyRadius = () => JOY_R / SENS_LEVELS[sensKey];
 const joy = { id: null, active: false, bx: 0, by: 0, sx: 0, sy: 0 };
 
@@ -276,44 +300,63 @@ function handleOrientation(e) {
   if (input.mode !== "tilt" || !input.tiltBase) return;
   // Sensibilidad base: ~22° de inclinación = aceleración máxima
   const SENS = 22 / SENS_LEVELS[sensKey];
-  input.ax = clamp((e.gamma - input.tiltBase.gamma) / SENS, -1, 1);
-  input.ay = clamp((e.beta - input.tiltBase.beta) / SENS, -1, 1);
+  input.tiltAx = clamp((e.gamma - input.tiltBase.gamma) / SENS, -1, 1);
+  input.tiltAy = clamp((e.beta - input.tiltBase.beta) / SENS, -1, 1);
 }
 window.addEventListener("deviceorientation", handleOrientation);
 
-function readInput() {
-  if (input.mode === "tilt") return; // ax/ay ya vienen del sensor
-  if (input.mode === "joy") {
+const TOUCH_DEAD = 0.12; // zona muerta radial del joystick/inclinación
+
+function readInput(dt) {
+  let tx = 0, ty = 0;
+  const touchMode = input.mode === "tilt" || input.mode === "joy";
+
+  if (input.mode === "tilt") {
+    tx = input.tiltAx; ty = input.tiltAy;
+  } else if (input.mode === "joy") {
     if (joy.active) {
       const R = joyRadius();
-      input.ax = clamp((joy.sx - joy.bx) / R, -1, 1);
-      input.ay = clamp((joy.sy - joy.by) / R, -1, 1);
-    } else {
-      input.ax = input.ay = 0;
+      tx = clamp((joy.sx - joy.bx) / R, -1, 1);
+      ty = clamp((joy.sy - joy.by) / R, -1, 1);
     }
-    return;
+  } else if (input.mode === "keys") {
+    if (input.keys.has("arrowleft") || input.keys.has("a")) tx -= 1;
+    if (input.keys.has("arrowright") || input.keys.has("d")) tx += 1;
+    if (input.keys.has("arrowup") || input.keys.has("w")) ty -= 1;
+    if (input.keys.has("arrowdown") || input.keys.has("s")) ty += 1;
+    if (tx && ty) { tx *= 0.7071; ty *= 0.7071; }
+    if (!tx && !ty && input.mouseX != null) input.mode = "mouse";
+  } else {
+    // Mouse: el puntero "inclina" el mundo hacia él (autodesacelera al llegar)
+    if (input.mouseX != null) {
+      const dx = input.mouseX - player.x;
+      const dy = input.mouseY - player.y;
+      const d = Math.hypot(dx, dy);
+      const dead = 14;
+      if (d >= dead) {
+        const f = clamp((d - dead) / 120, 0, 1);
+        tx = (dx / d) * f;
+        ty = (dy / d) * f;
+      }
+    }
   }
-  if (input.mode === "keys") {
-    let x = 0, y = 0;
-    if (input.keys.has("arrowleft") || input.keys.has("a")) x -= 1;
-    if (input.keys.has("arrowright") || input.keys.has("d")) x += 1;
-    if (input.keys.has("arrowup") || input.keys.has("w")) y -= 1;
-    if (input.keys.has("arrowdown") || input.keys.has("s")) y += 1;
-    if (x && y) { x *= 0.7071; y *= 0.7071; }
-    input.ax = x; input.ay = y;
-    if (!x && !y && input.mouseX != null) input.mode = "mouse";
-    return;
+
+  if (touchMode) {
+    // Zona muerta radial: ignora micro-movimientos (anti-temblor)
+    const mag = Math.hypot(tx, ty);
+    if (mag < TOUCH_DEAD) {
+      tx = ty = 0;
+    } else {
+      const k = (mag - TOUCH_DEAD) / (1 - TOUCH_DEAD) / mag;
+      tx *= k; ty *= k;
+    }
+    // Suavizado hacia el objetivo: quita el "jitter" del dedo/sensor
+    const s = clamp(dt * 25, 0, 1);
+    input.ax += (tx - input.ax) * s;
+    input.ay += (ty - input.ay) * s;
+  } else {
+    input.ax = tx; input.ay = ty;
   }
-  // Mouse: el puntero "inclina" el mundo hacia él
-  if (input.mouseX == null) { input.ax = input.ay = 0; return; }
-  const dx = input.mouseX - player.x;
-  const dy = input.mouseY - player.y;
-  const d = Math.hypot(dx, dy);
-  const dead = 14;
-  if (d < dead) { input.ax = input.ay = 0; return; }
-  const f = clamp((d - dead) / 120, 0, 1);
-  input.ax = (dx / d) * f;
-  input.ay = (dy / d) * f;
 }
 
 /* ---------------- Estado del juego ---------------- */
@@ -524,14 +567,20 @@ function update(dt) {
   const M = MODES[modeKey];
   elapsed += dt;
   if (M.scorePerSec) score += M.scorePerSec * dt;
-  readInput();
+  readInput(dt);
 
   // Jugador: física tipo "canica sobre mesa inclinada"
   const ACCEL = 1300, FRICTION = 3.2, MAXV = 480;
   player.vx += input.ax * ACCEL * dt;
   player.vy += input.ay * ACCEL * dt;
-  player.vx -= player.vx * FRICTION * dt;
-  player.vy -= player.vy * FRICTION * dt;
+  // En táctil, "control" añade freno al soltar para que no patine (firmeza)
+  let friction = FRICTION;
+  if (input.mode === "joy" || input.mode === "tilt") {
+    const inMag = Math.min(1, Math.hypot(input.ax, input.ay));
+    friction += (feel / 100) * 9 * (1 - inMag);
+  }
+  player.vx -= player.vx * friction * dt;
+  player.vy -= player.vy * friction * dt;
   const v = Math.hypot(player.vx, player.vy);
   if (v > MAXV) { player.vx = (player.vx / v) * MAXV; player.vy = (player.vy / v) * MAXV; }
   player.x += player.vx * dt;
@@ -700,9 +749,10 @@ function drawBackground() {
 function drawTrail() {
   if (trail.length < 2) return;
   ctx.lineCap = "round";
+  const trailCol = trailRgb();
   for (let i = 1; i < trail.length; i++) {
     const a = trail[i - 1], b = trail[i];
-    ctx.strokeStyle = `rgba(${theme.trail},0.9)`;
+    ctx.strokeStyle = `rgba(${trailCol},0.9)`;
     ctx.globalAlpha = clamp(b.life / 0.35, 0, 1) * 0.55;
     ctx.lineWidth = clamp(b.life / 0.35, 0, 1) * 7;
     ctx.beginPath();
@@ -721,7 +771,7 @@ function drawPlayer(t) {
   ctx.beginPath();
   CURSORS[cursorKey].draw(ctx);
   ctx.closePath();
-  ctx.fillStyle = theme.playerFill;
+  ctx.fillStyle = cursorFill();
   ctx.strokeStyle = theme.outline;
   ctx.lineWidth = 3;
   ctx.fill();
@@ -917,6 +967,7 @@ function startGame() {
   player.x = W / 2; player.y = H / 2;
   player.vx = player.vy = 0; player.angle = -Math.PI / 2;
   $overlay.classList.add("gone");
+  document.getElementById("btn-config").hidden = true;
   $hud.hidden = false;
   $bestInline.textContent = best ? `RÉCORD ${MODES[modeKey].name.toUpperCase()} ${best.toLocaleString("es-CL")}` : MODES[modeKey].name.toUpperCase();
   running = true;
@@ -929,7 +980,7 @@ function gameOver() {
   sound.death();
   shake = 16;
   slowmo = 0.5;
-  burst(player.x, player.y, theme.playerFill, 30, 320);
+  burst(player.x, player.y, cursorFill(), 30, 320);
   burst(player.x, player.y, theme.dot.normal, 20, 240);
 
   const finalScore = Math.floor(score);
@@ -959,6 +1010,7 @@ function gameOver() {
     $start.hidden = true;
     $over.hidden = false;
     $overlay.classList.remove("gone");
+    document.getElementById("btn-config").hidden = false;
     $hud.hidden = true;
   }, 900);
 }
@@ -1049,7 +1101,7 @@ function refreshCursorRow() {
     CURSORS[key].draw(c);
     c.closePath();
     if (unlocked) {
-      c.fillStyle = theme.playerFill;
+      c.fillStyle = cursorFill();
       c.strokeStyle = theme.outline;
       c.lineWidth = 3.2;
       c.fill();
@@ -1080,6 +1132,52 @@ for (const [key, cdef] of Object.entries(CURSORS)) {
   $cursorRow.appendChild(b);
 }
 
+/* Selectores de color (cursor y estela): swatches + opción "Tema" */
+const $cursorColorRow = document.getElementById("cursor-color-row");
+const $trailColorRow = document.getElementById("trail-color-row");
+
+function buildColorRow(rowEl, kind) {
+  const entries = [["tema", null], ...Object.entries(COLORS)];
+  for (const [key, hex] of entries) {
+    const b = document.createElement("button");
+    b.className = "swatch color-swatch" + (key === "tema" ? " tema-swatch" : "");
+    b.dataset.color = key;
+    b.title = key === "tema" ? "Tema" : key;
+    b.setAttribute("aria-label", (kind === "cursor" ? "Color cursor " : "Color estela ") + b.title);
+    if (hex) b.style.background = hex;
+    b.addEventListener("click", () => selectColor(kind, key));
+    rowEl.appendChild(b);
+  }
+}
+
+function selectColor(kind, key) {
+  if (kind === "cursor") {
+    cursorColorKey = key;
+    localStorage.setItem("tilt-cursor-color", key);
+  } else {
+    trailColorKey = key;
+    localStorage.setItem("tilt-trail-color", key);
+  }
+  refreshColorRows();
+  refreshCursorRow(); // la preview del cursor refleja el color elegido
+}
+
+function refreshColorRows() {
+  if (!$cursorColorRow || !$cursorColorRow.childElementCount) return;
+  for (const b of $cursorColorRow.querySelectorAll(".color-swatch")) {
+    if (b.dataset.color === "tema") b.style.background = theme.playerFill;
+    b.classList.toggle("sel", b.dataset.color === cursorColorKey);
+  }
+  for (const b of $trailColorRow.querySelectorAll(".color-swatch")) {
+    if (b.dataset.color === "tema") b.style.background = `rgb(${theme.trail})`;
+    b.classList.toggle("sel", b.dataset.color === trailColorKey);
+  }
+}
+
+buildColorRow($cursorColorRow, "cursor");
+buildColorRow($trailColorRow, "trail");
+refreshColorRows();
+
 /* Selector de sensibilidad (solo táctil: joystick e inclinación) */
 const $sensRow = document.getElementById("sens-row");
 
@@ -1096,6 +1194,37 @@ $sensRow.querySelectorAll(".chip").forEach((b) =>
 );
 if (isTouch) $sensRow.hidden = false;
 setSens(sensKey);
+
+/* Slider de "control" (firmeza táctil) */
+const $feelRow = document.getElementById("feel-row");
+const $feelRange = document.getElementById("feel-range");
+$feelRange.value = feel;
+$feelRange.addEventListener("input", () => {
+  feel = clamp(+$feelRange.value, 0, 100);
+  localStorage.setItem("tilt-feel", String(feel));
+});
+if (isTouch) $feelRow.hidden = false;
+
+/* Popup de configuración */
+const $config = document.getElementById("screen-config");
+const $btnConfig = document.getElementById("btn-config");
+let configReturn = $start;
+
+function openConfig() {
+  configReturn = !$over.hidden ? $over : $start;
+  $start.hidden = true;
+  $over.hidden = true;
+  $config.hidden = false;
+  $btnConfig.hidden = true;
+}
+function closeConfig() {
+  $config.hidden = true;
+  configReturn.hidden = false;
+  $btnConfig.hidden = false;
+}
+$btnConfig.addEventListener("click", openConfig);
+document.getElementById("btn-config-done").addEventListener("click", closeConfig);
+$btnConfig.hidden = false; // visible en la pantalla de inicio
 
 setMode(modeKey);
 applyTheme(localStorage.getItem("tilt-theme") || "papel");
