@@ -44,6 +44,16 @@
 
     <div class="select-row" id="theme-row" aria-label="Tema de colores"></div>
 
+    <div class="select-row" id="cursor-row" aria-label="Cursor del jugador"></div>
+    <p id="cursor-desc" class="mode-desc"></p>
+
+    <div class="select-row" id="sens-row" hidden>
+      <span class="row-label">SENSIBILIDAD</span>
+      <button class="chip" data-sens="suave">SUAVE</button>
+      <button class="chip" data-sens="normal">NORMAL</button>
+      <button class="chip" data-sens="rapida">RÁPIDA</button>
+    </div>
+
     <div class="weapons-legend">
       <span><i class="orb orb-nuke"></i> Nuke</span>
       <span><i class="orb orb-frost"></i> Hielo</span>
@@ -62,6 +72,7 @@
     <h2 id="over-title">TE ATRAPARON</h2>
     <p class="final-score"><span id="final-score">0</span> pts</p>
     <p id="over-detail" class="hint"></p>
+    <p id="over-unlock" class="unlock-msg" hidden></p>
     <button id="btn-retry" class="big-btn">OTRA VEZ</button>
     <button id="btn-home" class="text-btn">← Pantalla de inicio</button>
   </section>

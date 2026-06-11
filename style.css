@@ -204,6 +204,57 @@ h2 {
   border-radius: 50%;
 }
 
+/* ---------- Selector de cursor ---------- */
+.cursor-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 3px solid var(--ink);
+  background: var(--paper);
+  box-shadow: 0 3px 0 var(--ink);
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  transition: transform 120ms cubic-bezier(.2,1.6,.4,1);
+}
+.cursor-btn canvas {
+  width: 36px;
+  height: 36px;
+  display: block;
+  margin: auto;
+}
+.cursor-btn .lock {
+  display: none;
+  position: absolute;
+  right: -6px;
+  bottom: -8px;
+  font-size: .85rem;
+}
+.cursor-btn.locked { opacity: .6; box-shadow: none; transform: translateY(3px); }
+.cursor-btn.locked .lock { display: block; }
+.cursor-btn.sel { transform: scale(1.12); }
+.cursor-btn.sel::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 3px solid var(--red);
+  border-radius: 16px;
+}
+
+/* ---------- Sensibilidad ---------- */
+.row-label {
+  font-weight: 800;
+  font-size: .8rem;
+  letter-spacing: .04em;
+  color: var(--ink-soft);
+}
+
+.unlock-msg {
+  margin-top: 10px;
+  font-weight: 800;
+  color: var(--sword);
+}
+
 .weapons-legend {
   margin: 22px 0 6px;
   display: flex;
@@ -330,6 +381,10 @@ h2 {
   .chip { font-size: .7rem; padding: 7px 11px; }
   .mode-desc { margin-top: 6px; font-size: .78rem; }
   .swatch { width: 30px; height: 30px; }
+  .cursor-btn { width: 36px; height: 36px; border-radius: 10px; }
+  .cursor-btn canvas { width: 28px; height: 28px; }
+  .cursor-btn.sel::after { inset: -6px; border-radius: 13px; }
+  .row-label { font-size: .7rem; }
   .weapons-legend { margin: 10px 0 2px; gap: 10px; font-size: .75rem; }
   .big-btn { margin-top: 10px; padding: 11px 28px; font-size: 1.25rem; }
   .big-btn.alt { font-size: 1rem; }

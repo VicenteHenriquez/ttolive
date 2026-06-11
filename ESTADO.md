@@ -18,7 +18,7 @@ rojos te persiguen, esquivas y recoges armas. Última actualización: 2026-06-10
 | `style.css` | UI con variables CSS (`--paper`, `--ink`, `--red`…) que los temas sobreescriben |
 | `game.js` | Todo el motor (~900 líneas, vanilla, Canvas 2D) |
 | `manifest.webmanifest` | PWA: fullscreen, `orientation: landscape` |
-| `sw.js` | Service worker cache-first. **Subir versión de `CACHE` en cada cambio** (va en `tilt-v4`) |
+| `sw.js` | Service worker cache-first. **Subir versión de `CACHE` en cada cambio** (va en `tilt-v5`) |
 | `icon.svg` → `icon-*.png` | Ícono. Regenerar con `qlmanage -t -s 512 -o . icon.svg` + `sips` |
 | `.github/workflows/deploy.yml` | Deploy automático a Vercel en cada push a `main` |
 
@@ -28,9 +28,16 @@ rojos te persiguen, esquivas y recoges armas. Última actualización: 2026-06-10
    Cada tema define TODOS los colores del canvas (fondo, grilla, viñeta, jugador,
    estela, enemigos, orbes, joystick) y sincroniza las variables CSS. Nada de
    colores hardcodeados en el render: siempre `theme.*`.
-2. **Modos** (`MODES`, `modeKey`, `bestKey`/`loadBest`) — classic, chaos
+2. **Modos** (`MODES`, `modeKey`, `bestKey`/`bestFor`/`loadBest`) — classic, chaos
    (startDiff 0.35, rampa 50s, puntos ×2), zen/Pacifista (sin orbes, 15 pts/s).
    Récord por modo en localStorage (`tilt-best-<modo>`).
+   **Cursores** (`CURSORS`, `cursorUnlocked`) — 5 formas del jugador; se
+   desbloquean por récord en un modo (dardo 1k Clásico, cometa 1,5k Pacifista,
+   estrella 5k Caos, nave 10k Clásico). Selección en `tilt-cursor`; previews
+   en canvas en `#cursor-row`, aviso de desbloqueo en game over (`#over-unlock`).
+   **Sensibilidad** (`SENS_LEVELS`, `tilt-sens`) — suave/normal/rápida; escala
+   el radio del joystick (`joyRadius()`) y los grados del tilt. Solo visible
+   en táctil (`#sens-row`).
 3. **Audio** (`sound`) — efectos sintetizados WebAudio + loop chiptune
    (secuenciador de 32 pasos, La menor, 138 bpm). Mute persistido.
 4. **Entrada** (`input`, `joy`) — 4 modos: `mouse`, `keys` (WASD/flechas),

@@ -84,6 +84,7 @@ function applyTheme(key) {
   document.querySelectorAll("#theme-row .swatch").forEach((b) =>
     b.classList.toggle("sel", b.dataset.theme === key)
   );
+  refreshCursorRow(); // las previews de cursores usan los colores del tema
 }
 
 /* ---------------- Modos de juego ---------------- */
@@ -105,11 +106,64 @@ const MODES = {
 let modeKey = MODES[localStorage.getItem("tilt-mode")] ? localStorage.getItem("tilt-mode") : "classic";
 
 function bestKey() { return "tilt-best-" + modeKey; }
-function loadBest() {
+function bestFor(mode) {
   // migración: el récord antiguo (sin modos) cuenta como récord de Clásico
-  const legacy = modeKey === "classic" ? localStorage.getItem("tilt-best") : null;
-  return +(localStorage.getItem(bestKey()) || legacy || 0);
+  const legacy = mode === "classic" ? localStorage.getItem("tilt-best") : null;
+  return +(localStorage.getItem("tilt-best-" + mode) || legacy || 0);
 }
+function loadBest() { return bestFor(modeKey); }
+
+/* ---------------- Cursores (forma del jugador) ----------------
+   Se desbloquean alcanzando un puntaje en un modo concreto.
+   Cada draw() traza el contorno mirando hacia +x, tamaño ~±16. */
+const CURSORS = {
+  flecha: {
+    name: "Flecha", unlock: null,
+    draw(c) { c.moveTo(14, 0); c.lineTo(-10, 9); c.lineTo(-5, 0); c.lineTo(-10, -9); },
+  },
+  dardo: {
+    name: "Dardo", unlock: { mode: "classic", score: 1000 },
+    draw(c) { c.moveTo(19, 0); c.lineTo(-9, 5); c.lineTo(-4, 0); c.lineTo(-9, -5); },
+  },
+  cometa: {
+    name: "Cometa", unlock: { mode: "zen", score: 1500 },
+    draw(c) {
+      c.moveTo(-2, 5); c.lineTo(-16, 0); c.lineTo(-2, -5);
+      c.arc(5, 0, 7.5, -Math.PI * 0.65, Math.PI * 0.65);
+    },
+  },
+  estrella: {
+    name: "Estrella", unlock: { mode: "chaos", score: 5000 },
+    draw(c) {
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? 14 : 6;
+        const a = (i / 10) * TAU;
+        c[i === 0 ? "moveTo" : "lineTo"](Math.cos(a) * r, Math.sin(a) * r);
+      }
+    },
+  },
+  nave: {
+    name: "Nave", unlock: { mode: "classic", score: 10000 },
+    draw(c) {
+      c.moveTo(16, 0); c.lineTo(0, 6); c.lineTo(-6, 12); c.lineTo(-8, 4);
+      c.lineTo(-12, 0); c.lineTo(-8, -4); c.lineTo(-6, -12); c.lineTo(0, -6);
+    },
+  },
+};
+
+function cursorUnlocked(key) {
+  const u = CURSORS[key].unlock;
+  return !u || bestFor(u.mode) >= u.score;
+}
+
+let cursorKey = localStorage.getItem("tilt-cursor");
+if (!CURSORS[cursorKey] || !cursorUnlocked(cursorKey)) cursorKey = "flecha";
+
+/* ---------------- Sensibilidad de controles ----------------
+   Multiplicador: achica el radio del joystick y los grados de
+   inclinación necesarios para llegar a la aceleración máxima. */
+const SENS_LEVELS = { suave: 0.7, normal: 1, rapida: 1.4 };
+let sensKey = SENS_LEVELS[localStorage.getItem("tilt-sens")] ? localStorage.getItem("tilt-sens") : "normal";
 
 /* ---------------- Audio: sintetizadores + música ---------------- */
 const sound = {
@@ -196,6 +250,7 @@ const input = {
 
 /* Joystick flotante (móvil): la base aparece donde apoyas el dedo */
 const JOY_R = 60;
+const joyRadius = () => JOY_R / SENS_LEVELS[sensKey];
 const joy = { id: null, active: false, bx: 0, by: 0, sx: 0, sy: 0 };
 
 window.addEventListener("pointermove", (e) => {
@@ -219,8 +274,8 @@ function handleOrientation(e) {
   if (e.beta == null || e.gamma == null) return;
   input.lastTilt = { beta: e.beta, gamma: e.gamma };
   if (input.mode !== "tilt" || !input.tiltBase) return;
-  // Sensibilidad: ~22° de inclinación = aceleración máxima
-  const SENS = 22;
+  // Sensibilidad base: ~22° de inclinación = aceleración máxima
+  const SENS = 22 / SENS_LEVELS[sensKey];
   input.ax = clamp((e.gamma - input.tiltBase.gamma) / SENS, -1, 1);
   input.ay = clamp((e.beta - input.tiltBase.beta) / SENS, -1, 1);
 }
@@ -230,8 +285,9 @@ function readInput() {
   if (input.mode === "tilt") return; // ax/ay ya vienen del sensor
   if (input.mode === "joy") {
     if (joy.active) {
-      input.ax = clamp((joy.sx - joy.bx) / JOY_R, -1, 1);
-      input.ay = clamp((joy.sy - joy.by) / JOY_R, -1, 1);
+      const R = joyRadius();
+      input.ax = clamp((joy.sx - joy.bx) / R, -1, 1);
+      input.ay = clamp((joy.sy - joy.by) / R, -1, 1);
     } else {
       input.ax = input.ay = 0;
     }
@@ -661,12 +717,9 @@ function drawPlayer(t) {
   ctx.save();
   ctx.translate(player.x, player.y);
   ctx.rotate(player.angle);
-  // flecha estilo cartoon
+  // cursor seleccionado, estilo cartoon
   ctx.beginPath();
-  ctx.moveTo(14, 0);
-  ctx.lineTo(-10, 9);
-  ctx.lineTo(-5, 0);
-  ctx.lineTo(-10, -9);
+  CURSORS[cursorKey].draw(ctx);
   ctx.closePath();
   ctx.fillStyle = theme.playerFill;
   ctx.strokeStyle = theme.outline;
@@ -807,7 +860,7 @@ function draw(t) {
   // Joystick fuera del save/restore: no le afecta el screen shake
   if (running && input.mode === "joy" && joy.active) {
     ctx.beginPath();
-    ctx.arc(joy.bx, joy.by, JOY_R, 0, TAU);
+    ctx.arc(joy.bx, joy.by, joyRadius(), 0, TAU);
     ctx.fillStyle = theme.joyBase;
     ctx.strokeStyle = theme.joyLine;
     ctx.lineWidth = 2;
@@ -881,10 +934,13 @@ function gameOver() {
 
   const finalScore = Math.floor(score);
   const isRecord = finalScore > best;
+  const lockedBefore = Object.keys(CURSORS).filter((k) => !cursorUnlocked(k));
   if (isRecord) {
     best = finalScore;
     localStorage.setItem(bestKey(), String(best));
   }
+  const newCursors = lockedBefore.filter(cursorUnlocked);
+  if (newCursors.length) refreshCursorRow();
 
   setTimeout(() => {
     document.getElementById("over-title").textContent = isRecord ? "¡NUEVO RÉCORD!" : "TE ATRAPARON";
@@ -892,6 +948,14 @@ function gameOver() {
     document.getElementById("over-detail").textContent =
       `${MODES[modeKey].name} · ${killsTotal} puntos eliminados · sobreviviste ${Math.floor(elapsed)}s` +
       (isRecord ? "" : ` · récord: ${best.toLocaleString("es-CL")}`);
+    const $unlock = document.getElementById("over-unlock");
+    $unlock.hidden = !newCursors.length;
+    if (newCursors.length) {
+      $unlock.textContent = "🔓 ¡Desbloqueaste " +
+        (newCursors.length === 1
+          ? `el cursor ${CURSORS[newCursors[0]].name}!`
+          : `los cursores ${newCursors.map((k) => CURSORS[k].name).join(" y ")}!`);
+    }
     $start.hidden = true;
     $over.hidden = false;
     $overlay.classList.remove("gone");
@@ -947,6 +1011,92 @@ for (const [key, t] of Object.entries(THEMES)) {
   $themeRow.appendChild(b);
 }
 
+/* Selector de cursor: previews en canvas, candado si está bloqueado */
+const $cursorRow = document.getElementById("cursor-row");
+const $cursorDesc = document.getElementById("cursor-desc");
+
+function unlockHint(key) {
+  const u = CURSORS[key].unlock;
+  return `${CURSORS[key].name}: consigue ${u.score.toLocaleString("es-CL")} pts en ${MODES[u.mode].name}`;
+}
+
+function selectCursor(key) {
+  if (!cursorUnlocked(key)) {
+    $cursorDesc.textContent = "🔒 " + unlockHint(key);
+    return;
+  }
+  cursorKey = key;
+  localStorage.setItem("tilt-cursor", key);
+  $cursorDesc.textContent = "";
+  refreshCursorRow();
+}
+
+function refreshCursorRow() {
+  if (!$cursorRow.childElementCount) return;
+  for (const b of $cursorRow.querySelectorAll(".cursor-btn")) {
+    const key = b.dataset.cursor;
+    const unlocked = cursorUnlocked(key);
+    b.classList.toggle("locked", !unlocked);
+    b.classList.toggle("sel", key === cursorKey);
+    const cv = b.querySelector("canvas");
+    const c = cv.getContext("2d");
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, cv.width, cv.height);
+    c.setTransform(2, 0, 0, 2, cv.width / 2, cv.height / 2); // 2x para retina
+    c.rotate(-Math.PI / 2); // mirando hacia arriba
+    c.scale(0.85, 0.85);
+    c.beginPath();
+    CURSORS[key].draw(c);
+    c.closePath();
+    if (unlocked) {
+      c.fillStyle = theme.playerFill;
+      c.strokeStyle = theme.outline;
+      c.lineWidth = 3.2;
+      c.fill();
+      c.stroke();
+    } else {
+      c.globalAlpha = 0.4;
+      c.fillStyle = theme.inkSoft;
+      c.fill();
+      c.globalAlpha = 1;
+    }
+  }
+}
+
+for (const [key, cdef] of Object.entries(CURSORS)) {
+  const b = document.createElement("button");
+  b.className = "cursor-btn";
+  b.dataset.cursor = key;
+  b.title = cdef.name;
+  b.setAttribute("aria-label", "Cursor " + cdef.name);
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 72;
+  b.appendChild(cv);
+  const lock = document.createElement("span");
+  lock.className = "lock";
+  lock.textContent = "🔒";
+  b.appendChild(lock);
+  b.addEventListener("click", () => selectCursor(key));
+  $cursorRow.appendChild(b);
+}
+
+/* Selector de sensibilidad (solo táctil: joystick e inclinación) */
+const $sensRow = document.getElementById("sens-row");
+
+function setSens(key) {
+  sensKey = key;
+  localStorage.setItem("tilt-sens", key);
+  $sensRow.querySelectorAll(".chip").forEach((b) =>
+    b.classList.toggle("sel", b.dataset.sens === key)
+  );
+}
+
+$sensRow.querySelectorAll(".chip").forEach((b) =>
+  b.addEventListener("click", () => setSens(b.dataset.sens))
+);
+if (isTouch) $sensRow.hidden = false;
+setSens(sensKey);
+
 setMode(modeKey);
 applyTheme(localStorage.getItem("tilt-theme") || "papel");
 
@@ -971,9 +1121,10 @@ window.addEventListener("touchmove", (e) => {
     if (t.identifier !== joy.id) continue;
     const dx = t.clientX - joy.bx, dy = t.clientY - joy.by;
     const d = Math.hypot(dx, dy);
-    if (d > JOY_R) {
-      joy.sx = joy.bx + (dx / d) * JOY_R;
-      joy.sy = joy.by + (dy / d) * JOY_R;
+    const R = joyRadius();
+    if (d > R) {
+      joy.sx = joy.bx + (dx / d) * R;
+      joy.sy = joy.by + (dy / d) * R;
     } else {
       joy.sx = t.clientX;
       joy.sy = t.clientY;
